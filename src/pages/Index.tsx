@@ -107,6 +107,8 @@ const purchases = [
   { product: "Shadow Work Journal", date: "Mar 28, 2026", status: "Active", price: "$25" },
 ];
 
+const CRYPTO_WALLET = "0xec6da57ce49fe14140050a012c94df329d2ec1d8";
+
 const CARD_COLORS = [
   { bg: "rgba(0,255,209,0.08)", border: "rgba(0,255,209,0.25)", icon: "var(--neon-cyan)", btn: "linear-gradient(135deg,#00FFD1,#00B4D8)", btnShadow: "0 0 20px rgba(0,255,209,0.4)" },
   { bg: "rgba(155,93,229,0.08)", border: "rgba(155,93,229,0.25)", icon: "#C084FC", btn: "linear-gradient(135deg,#9B5DE5,#6D28D9)", btnShadow: "0 0 20px rgba(155,93,229,0.4)" },
@@ -121,6 +123,21 @@ export default function Index() {
   const [password, setPassword] = useState("");
   const [contactForm, setContactForm] = useState({ name: "", email: "", message: "" });
   const [contactSent, setContactSent] = useState(false);
+  const [payModal, setPayModal] = useState<{ title: string; price: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [payStep, setPayStep] = useState<"choose" | "crypto" | "done">("choose");
+
+  const openPay = (title: string, price: string) => {
+    setPayModal({ title, price });
+    setPayStep("choose");
+    setCopied(false);
+  };
+  const closePay = () => { setPayModal(null); setPayStep("choose"); setCopied(false); };
+  const copyWallet = () => {
+    navigator.clipboard.writeText(CRYPTO_WALLET);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2500);
+  };
 
   const nav = (p: Page) => { setPage(p); setMenuOpen(false); window.scrollTo({ top: 0, behavior: "smooth" }); };
 
@@ -408,7 +425,8 @@ export default function Index() {
                       <span className="text-sm ml-2 line-through" style={{ color: "rgba(255,255,255,0.28)" }}>{p.oldPrice}</span>
                     </div>
                     <button className="px-5 py-2.5 rounded-full text-sm font-bold transition-all hover:scale-105"
-                      style={{ background: c.btn, color: "white", fontFamily: "Syne,sans-serif", boxShadow: c.btnShadow }}>
+                      style={{ background: c.btn, color: "white", fontFamily: "Syne,sans-serif", boxShadow: c.btnShadow }}
+                      onClick={() => openPay(p.title, p.price)}>
                       Buy Now
                     </button>
                   </div>
@@ -632,6 +650,108 @@ export default function Index() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {payModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          style={{ background: "rgba(0,0,0,0.75)", backdropFilter: "blur(8px)" }}
+          onClick={closePay}>
+          <div className="w-full max-w-md rounded-2xl p-7 relative"
+            style={{ background: "hsl(225,20%,8%)", border: "1px solid rgba(0,255,209,0.25)", boxShadow: "0 0 60px rgba(0,255,209,0.12)" }}
+            onClick={e => e.stopPropagation()}>
+
+            {/* Header */}
+            <div className="flex items-start justify-between mb-6">
+              <div>
+                <p className="text-xs font-bold tracking-widest mb-1" style={{ color: "rgba(255,255,255,0.38)", fontFamily: "Syne,sans-serif" }}>PURCHASE</p>
+                <h3 className="text-xl font-bold" style={{ fontFamily: "Syne,sans-serif" }}>{payModal.title}</h3>
+                <span className="text-2xl font-bold mt-1 block" style={{ color: "#00FFD1", fontFamily: "Syne,sans-serif" }}>{payModal.price}</span>
+              </div>
+              <button onClick={closePay} style={{ color: "rgba(255,255,255,0.4)" }} className="hover:text-white transition-colors mt-1">
+                <Icon name="X" size={20} />
+              </button>
+            </div>
+
+            {payStep === "choose" && (
+              <>
+                <p className="text-sm mb-5" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "DM Sans,sans-serif" }}>
+                  Choose your payment method:
+                </p>
+                <div className="space-y-3">
+                  <button className="w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+                    style={{ background: "linear-gradient(135deg,#00FFD1,#00B4D8)", color: "#0a0b16", fontFamily: "Syne,sans-serif", boxShadow: "0 0 25px rgba(0,255,209,0.35)" }}
+                    onClick={() => setPayStep("crypto")}>
+                    <Icon name="Wallet" size={16} />
+                    Pay with Crypto (ETH / ERC-20)
+                  </button>
+                  <div className="flex gap-2">
+                    {["Stripe", "PayPal"].map(m => (
+                      <button key={m} className="flex-1 py-3 rounded-xl font-semibold text-sm transition-all hover:scale-[1.02]"
+                        style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)", color: "rgba(255,255,255,0.6)", fontFamily: "Syne,sans-serif" }}>
+                        {m} <span className="text-xs opacity-50">(soon)</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {payStep === "crypto" && (
+              <>
+                <div className="rounded-xl p-4 mb-4" style={{ background: "rgba(0,255,209,0.05)", border: "1px solid rgba(0,255,209,0.18)" }}>
+                  <p className="text-xs font-bold tracking-widest mb-3" style={{ color: "#00FFD1", fontFamily: "Syne,sans-serif" }}>
+                    ETH / ERC-20 WALLET ADDRESS
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs break-all flex-1 select-all"
+                      style={{ color: "rgba(255,255,255,0.85)", fontFamily: "monospace", wordBreak: "break-all" }}>
+                      {CRYPTO_WALLET}
+                    </code>
+                    <button onClick={copyWallet} className="flex-shrink-0 p-2 rounded-lg transition-all hover:scale-110"
+                      style={{ background: copied ? "rgba(0,255,209,0.2)" : "rgba(0,255,209,0.08)", border: "1px solid rgba(0,255,209,0.25)", color: "#00FFD1" }}>
+                      <Icon name={copied ? "Check" : "Copy"} size={15} />
+                    </button>
+                  </div>
+                  {copied && <p className="text-xs mt-2" style={{ color: "#00FFD1" }}>✓ Copied to clipboard!</p>}
+                </div>
+                <div className="rounded-xl p-4 mb-5" style={{ background: "rgba(254,228,64,0.04)", border: "1px solid rgba(254,228,64,0.15)" }}>
+                  <p className="text-xs leading-relaxed" style={{ color: "rgba(255,255,255,0.55)", fontFamily: "DM Sans,sans-serif" }}>
+                    <span style={{ color: "#FEE440" }}>⚠ Important:</span> Send exactly <strong style={{ color: "white" }}>{payModal.price}</strong> worth of ETH or any ERC-20 token to the address above.
+                    After payment, email us your transaction hash at <span style={{ color: "#00FFD1" }}>hello@mindshift.app</span> to receive your product.
+                  </p>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setPayStep("choose")} className="flex-1 py-3 rounded-xl text-sm font-semibold transition-all"
+                    style={{ border: "1px solid rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.5)", fontFamily: "Syne,sans-serif" }}>
+                    ← Back
+                  </button>
+                  <button onClick={() => setPayStep("done")} className="flex-1 py-3 rounded-xl font-bold text-sm transition-all hover:scale-[1.02]"
+                    style={{ background: "linear-gradient(135deg,#00FFD1,#00B4D8)", color: "#0a0b16", fontFamily: "Syne,sans-serif", boxShadow: "0 0 20px rgba(0,255,209,0.3)" }}>
+                    I've Sent Payment
+                  </button>
+                </div>
+              </>
+            )}
+
+            {payStep === "done" && (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4"
+                  style={{ background: "rgba(0,255,209,0.12)", border: "1px solid rgba(0,255,209,0.35)", boxShadow: "0 0 30px rgba(0,255,209,0.3)" }}>
+                  <Icon name="CheckCircle" size={30} style={{ color: "#00FFD1" }} />
+                </div>
+                <h3 className="text-xl font-bold mb-2" style={{ fontFamily: "Syne,sans-serif" }}>Thank You!</h3>
+                <p className="text-sm mb-5" style={{ color: "rgba(255,255,255,0.5)", fontFamily: "DM Sans,sans-serif" }}>
+                  Once we confirm your transaction, we'll send <strong style={{ color: "white" }}>{payModal.title}</strong> to your email within 1 hour.
+                </p>
+                <button onClick={closePay} className="px-8 py-3 rounded-full font-bold text-sm hover:scale-105 transition-all"
+                  style={{ background: "linear-gradient(135deg,#00FFD1,#00B4D8)", color: "#0a0b16", fontFamily: "Syne,sans-serif" }}>
+                  Close
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
